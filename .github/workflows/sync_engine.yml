@@ -1,0 +1,46 @@
+name: Prepare Flutter Engine Source
+
+on: 
+  workflow_dispatch:
+
+# این بخش برای اجازه آپلود فایل تو ریلیز الزامیه
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # این کار حدود ۳۰ گیگابایت فضا روی سرور گیت‌هاب آزاد می‌کنه
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          swap-storage: false
+
+      - name: Install Depot Tools
+        run: |
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+          echo "$GITHUB_WORKSPACE/depot_tools" >> $GITHUB_PATH
+
+      - name: Fetch Flutter Engine
+        run: |
+          mkdir engine
+          cd engine
+          fetch --nohooks flutter
+          gclient sync --no-history
+
+      - name: Compress Source Code
+        run: |
+          cd engine
+          tar -czf flutter_engine_src.tar.gz src/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: engine-source-v1
+          files: engine/flutter_engine_src.tar.gz
