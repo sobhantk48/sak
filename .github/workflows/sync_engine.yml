@@ -9,6 +9,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # برای جلوگیری از کشته شدن زودتر از موعد توسط گیت‌هاب
+    timeout-minutes: 360 
+
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
@@ -32,21 +35,22 @@ jobs:
           fetch --nohooks flutter
           gclient sync --no-history
 
+      - name: Cleanup Git Folders to Save Space
+        run: |
+          cd engine
+          # پاک کردن تمام پوشه‌های .git که به شدت حجم رو اشغال می‌کنن
+          find . -name ".git" -type d -exec rm -rf {} +
+          echo "پاکسازی فایل‌های گیت انجام شد!"
+
       - name: Compress and Split Source Code
         run: |
           cd engine
-          # اینجا به جای یه فایل، فایل‌ها رو تو پارت‌های ۱۸۰۰ مگابایتی تیکه‌تیکه می‌کنیم
-          tar -czf - src/ | split -b 1800M - flutter_engine.tar.gz.part_
+          # این بار پارت‌ها رو ۱۰۰۰ مگابایتی (۱ گیگ) می‌کنیم
+          tar -czf - src/ | split -b 1000M - flutter_engine.tar.gz.part_
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: engine-source-v1
-          # آپلود کردن تمام پارت‌های ساخته شده
+          tag_name: engine-source-v2
+          # به جای v1 گذاشتیم v2 که با قبلی تداخل نکنه
           files: engine/flutter_engine.tar.gz.part_*
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: engine-source-v1
-          files: engine/flutter_engine_src.tar.gz
